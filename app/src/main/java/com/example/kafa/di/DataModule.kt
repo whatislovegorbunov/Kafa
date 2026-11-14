@@ -2,8 +2,8 @@ package com.example.kafa.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.kafa.data.local.NoteDao
-import com.example.kafa.data.local.NoteDatabase
+import com.example.kafa.data.local.EventDao
+import com.example.kafa.data.local.EventDatabase
 import dagger.Module
 import dagger.Provides
 import javax.inject.Singleton
@@ -13,12 +13,12 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideNoteDatabase(context: Context): NoteDatabase =
-        Room.databaseBuilder(context, NoteDatabase::class.java, "notes.db")
-            .fallbackToDestructiveMigration()
+    fun provideEventDatabase(context: Context): EventDatabase =
+        Room.databaseBuilder(context, EventDatabase::class.java, "notes.db")
+            .addMigrations(EventDatabase.MIGRATION_2_3, EventDatabase.MIGRATION_3_4)
             .build()
 
     @Provides
     @Singleton
-    fun provideNoteDao(database: NoteDatabase): NoteDao = database.noteDao()
+    fun provideEventDao(database: EventDatabase): EventDao = database.eventDao()
 }
