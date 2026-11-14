@@ -1,7 +1,8 @@
-package com.example.kafa.presentation.feature.addnote
+package com.example.kafa.presentation.feature.addevent
 
 import app.cash.turbine.test
-import com.example.kafa.data.api.NoteRepository
+import com.example.kafa.data.api.EventRepository
+import com.example.kafa.domain.model.ReminderInterval
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -22,10 +23,10 @@ import org.junit.Before
 import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class AddNoteViewModelTest {
+class AddEventViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
-    private val noteRepository = mockk<NoteRepository>()
+    private val eventRepository = mockk<EventRepository>()
 
     @Before
     fun setup() {
@@ -39,7 +40,7 @@ class AddNoteViewModelTest {
 
     @Test
     fun initialState_hasEmptyFieldsAndNotSaving() = runTest(testDispatcher) {
-        val viewModel = AddNoteViewModel(noteRepository)
+        val viewModel = AddEventViewModel(eventRepository)
 
         val state = viewModel.uiState.value
         assertEquals("", state.title)
@@ -51,7 +52,7 @@ class AddNoteViewModelTest {
 
     @Test
     fun onTitleChange_updatesTitleInState() = runTest(testDispatcher) {
-        val viewModel = AddNoteViewModel(noteRepository)
+        val viewModel = AddEventViewModel(eventRepository)
 
         viewModel.uiState.test {
             assertEquals("", awaitItem().title)
@@ -63,7 +64,7 @@ class AddNoteViewModelTest {
 
     @Test
     fun onContentChange_updatesContentInState() = runTest(testDispatcher) {
-        val viewModel = AddNoteViewModel(noteRepository)
+        val viewModel = AddEventViewModel(eventRepository)
 
         viewModel.uiState.test {
             assertEquals("", awaitItem().content)
@@ -74,13 +75,13 @@ class AddNoteViewModelTest {
     }
 
     @Test
-    fun saveNote_withNonBlankTitle_callsRepositoryAndSetsIsSaved() = runTest(testDispatcher) {
-        coEvery { noteRepository.addNote(any(), any()) } returns Result.success(Unit)
-        val viewModel = AddNoteViewModel(noteRepository)
+    fun saveEvent_withNonBlankTitle_callsRepositoryAndSetsIsSaved() = runTest(testDispatcher) {
+        coEvery { eventRepository.addEvent(any(), any(), any()) } returns Result.success(Unit)
+        val viewModel = AddEventViewModel(eventRepository)
         viewModel.onTitleChange("Test Title")
         viewModel.onContentChange("Test Content")
 
-        viewModel.saveNote()
+        viewModel.saveEvent()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -88,27 +89,27 @@ class AddNoteViewModelTest {
         assertTrue(state.isSaved)
         assertNull(state.error)
 
-        coVerify(exactly = 1) { noteRepository.addNote("Test Title", "Test Content") }
+        coVerify(exactly = 1) { eventRepository.addEvent("Test Title", "Test Content", ReminderInterval.Automatic) }
     }
 
     @Test
-    fun saveNote_withBlankTitle_doesNotCallRepository() = runTest(testDispatcher) {
-        val viewModel = AddNoteViewModel(noteRepository)
+    fun saveEvent_withBlankTitle_doesNotCallRepository() = runTest(testDispatcher) {
+        val viewModel = AddEventViewModel(eventRepository)
 
-        viewModel.saveNote()
+        viewModel.saveEvent()
         advanceUntilIdle()
 
-        coVerify(exactly = 0) { noteRepository.addNote(any(), any()) }
+        coVerify(exactly = 0) { eventRepository.addEvent(any(), any(), any()) }
     }
 
     @Test
-    fun saveNote_whenRepositoryFails_setsErrorAndDoesNotSetSaved() = runTest(testDispatcher) {
+    fun saveEvent_whenRepositoryFails_setsErrorAndDoesNotSetSaved() = runTest(testDispatcher) {
         val errorMessage = "Save failed"
-        coEvery { noteRepository.addNote(any(), any()) } returns Result.failure(RuntimeException(errorMessage))
-        val viewModel = AddNoteViewModel(noteRepository)
+        coEvery { eventRepository.addEvent(any(), any(), any()) } returns Result.failure(RuntimeException(errorMessage))
+        val viewModel = AddEventViewModel(eventRepository)
         viewModel.onTitleChange("Test")
 
-        viewModel.saveNote()
+        viewModel.saveEvent()
         advanceUntilIdle()
 
         val state = viewModel.uiState.value
@@ -118,18 +119,18 @@ class AddNoteViewModelTest {
     }
 
     @Test
-    fun saveNote_setsIsSavingTrueDuringExecution_andFalseAfter() = runTest(testDispatcher) {
+    fun saveEvent_setsIsSavingTrueDuringExecution_andFalseAfter() = runTest(testDispatcher) {
         val latch = CompletableDeferred<Unit>()
-        coEvery { noteRepository.addNote(any(), any()) } coAnswers {
+        coEvery { eventRepository.addEvent(any(), any(), any()) } coAnswers {
             latch.await()
             Result.success(Unit)
         }
-        val viewModel = AddNoteViewModel(noteRepository)
+        val viewModel = AddEventViewModel(eventRepository)
         viewModel.onTitleChange("Test")
 
         viewModel.uiState.test {
             awaitItem()
-            viewModel.saveNote()
+            viewModel.saveEvent()
             advanceUntilIdle()
 
             val savingState = awaitItem()
@@ -145,5 +146,20 @@ class AddNoteViewModelTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+    @Test
+    fun fixedIntervalMustBePositiveAndIsPassedToRepository() = runTest(testDispatcher) {
+        coEvery { eventRepository.addEvent(any(), any(), any()) } returns Result.success(Unit)
+        val viewModel = AddEventViewModel(eventRepository)
+        viewModel.onTitleChange("Event")
+        viewModel.onAutomaticIntervalChange(false)
+        viewModel.onIntervalDaysChange("0")
+        viewModel.saveEvent()
+        advanceUntilIdle()
+        coVerify(exactly = 0) { eventRepository.addEvent(any(), any(), any()) }
+        viewModel.onIntervalDaysChange("14")
+        viewModel.saveEvent()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { eventRepository.addEvent("Event", "", ReminderInterval.Fixed(14)) }
     }
 }

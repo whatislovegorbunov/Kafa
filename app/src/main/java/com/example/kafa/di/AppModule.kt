@@ -1,7 +1,7 @@
 package com.example.kafa.di
 
-import com.example.kafa.data.api.NoteRepository
-import com.example.kafa.data.impl.NoteRepositoryImpl
+import com.example.kafa.data.api.EventRepository
+import com.example.kafa.data.impl.EventRepositoryImpl
 import dagger.Binds
 import dagger.Module
 import javax.inject.Singleton
@@ -11,5 +11,5 @@ abstract class AppModule {
 
     @Binds
     @Singleton
-    abstract fun bindNoteRepository(impl: NoteRepositoryImpl): NoteRepository
+    abstract fun bindEventRepository(impl: EventRepositoryImpl): EventRepository
 }

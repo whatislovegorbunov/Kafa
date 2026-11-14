@@ -1,32 +1,30 @@
 package com.example.kafa.domain.usecase
 
-import com.example.kafa.data.api.NoteRepository
+import com.example.kafa.data.api.EventRepository
 import com.example.kafa.domain.model.Recommendation
+import com.example.kafa.domain.reminder.ReminderPolicy
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
-import kotlin.math.max
 
 class GetRecommendationsUseCase @Inject constructor(
-    private val noteRepository: NoteRepository
+    private val eventRepository: EventRepository
 ) {
     operator fun invoke(): Flow<List<Recommendation>> =
-        noteRepository.observeNotes().map { notes ->
+        eventRepository.observeEvents().map { events ->
             val now = System.currentTimeMillis()
-            val millisPerDay = 86_400_000L
 
-            notes
-                .map { note ->
-                    val lastDone = note.lastDoneAt ?: note.createdAt
-                    val overdueDays = max(0L, (now - lastDone) / millisPerDay)
-                    val expectedDays = note.frequency.days.toLong()
+            events
+                .map { event ->
+                    val overdueDays = ReminderPolicy.elapsedDays(event, now)
+                    val expectedDays = event.reminderInterval.days.toLong()
                     val urgencyScore = if (expectedDays == 0L) 0f else overdueDays.toFloat() / expectedDays.toFloat()
-                    val message = if (note.lastDoneAt == null) {
-                        "You haven't done this yet"
+                    val message = if (event.history.isEmpty()) {
+                        "Ещё ни разу не отмечено"
                     } else {
-                        "You haven't done this in $overdueDays days"
+                        "Дней с последнего повторения: $overdueDays"
                     }
-                    Recommendation(note, urgencyScore, overdueDays, message)
+                    Recommendation(event, urgencyScore, overdueDays, message)
                 }
                 .filter { it.urgencyScore >= 1.0f }
                 .sortedByDescending { it.urgencyScore }

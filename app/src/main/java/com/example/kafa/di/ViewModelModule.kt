@@ -1,8 +1,9 @@
 package com.example.kafa.di
 
 import androidx.lifecycle.ViewModel
-import com.example.kafa.presentation.feature.addnote.AddNoteViewModel
-import com.example.kafa.presentation.feature.home.HomeViewModel
+import com.example.kafa.presentation.feature.addevent.AddEventViewModel
+import com.example.kafa.presentation.feature.events.EventsViewModel
+import com.example.kafa.presentation.feature.reminders.RemindersViewModel
 import dagger.Binds
 import dagger.Module
 import dagger.multibindings.IntoMap
@@ -12,11 +13,16 @@ abstract class ViewModelModule {
 
     @Binds
     @IntoMap
-    @ViewModelKey(HomeViewModel::class)
-    abstract fun bindHomeViewModel(viewModel: HomeViewModel): ViewModel
+    @ViewModelKey(EventsViewModel::class)
+    abstract fun bindEventsViewModel(viewModel: EventsViewModel): ViewModel
 
     @Binds
     @IntoMap
-    @ViewModelKey(AddNoteViewModel::class)
-    abstract fun bindAddNoteViewModel(viewModel: AddNoteViewModel): ViewModel
+    @ViewModelKey(RemindersViewModel::class)
+    abstract fun bindRemindersViewModel(viewModel: RemindersViewModel): ViewModel
+
+    @Binds
+    @IntoMap
+    @ViewModelKey(AddEventViewModel::class)
+    abstract fun bindAddEventViewModel(viewModel: AddEventViewModel): ViewModel
 }
